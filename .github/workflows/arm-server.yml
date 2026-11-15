@@ -1,0 +1,44 @@
+name: Oracle ARM-Server anlegen
+
+on:
+  schedule:
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  issues: write
+  contents: read
+
+jobs:
+  versuch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: pip install -q -r requirements.txt
+      - id: lauf
+        run: python anlegen.py
+        env:
+          OCI_USER: ${{ secrets.OCI_USER }}
+          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_TENANCY: ${{ secrets.OCI_TENANCY }}
+          OCI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_KEY: ${{ secrets.OCI_KEY }}
+          OCI_AD: ${{ secrets.OCI_AD }}
+          OCI_SUBNET: ${{ secrets.OCI_SUBNET }}
+          SSH_PUBKEY: ${{ secrets.SSH_PUBKEY }}
+      - if: steps.lauf.outputs.ergebnis == 'erfolg' || steps.lauf.outputs.ergebnis == 'vorhanden'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --repo "$GITHUB_REPOSITORY" \
+            --title "Oracle-Server ist da!" \
+            --body "server-1 (2 Kerne, 12 GB, Ubuntu 24.04) wurde in deinem Oracle-Konto angelegt. Sag Claude Bescheid, dann wird er eingerichtet." \
+            --assignee "$GITHUB_REPOSITORY_OWNER"
+          gh workflow disable "Oracle ARM-Server anlegen" --repo "$GITHUB_REPOSITORY"
