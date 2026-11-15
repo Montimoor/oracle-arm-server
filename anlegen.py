@@ -1,6 +1,9 @@
 # Läuft in GitHub Actions: versucht, den kostenlosen ARM-Server anzulegen.
 # Alle Zugangsdaten kommen aus GitHub-Secrets (Umgebungsvariablen).
 import os, sys, oci
+for k in list(os.environ):
+    if k.startswith(("OCI_", "SSH_")):
+        os.environ[k] = os.environ[k].replace("\r", "").strip()
 
 cfg = {
     "user": os.environ["OCI_USER"],
