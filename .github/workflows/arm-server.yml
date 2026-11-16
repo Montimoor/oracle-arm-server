@@ -1,4 +1,4 @@
-name: Oracle ARM-Server anlegen
+﻿name: Oracle ARM-Server anlegen
 
 on:
   schedule:
@@ -37,8 +37,8 @@ jobs:
           OCI_SUBNET: ${{ secrets.OCI_SUBNET }}
           SSH_PUBKEY: ${{ secrets.SSH_PUBKEY }}
         run: |
-          # Bis zu ca. 5,5 Stunden lang jede Minute versuchen
-          for i in $(seq 1 320); do
+          # Bis zu ca. 5,5 Stunden lang alle 90 Sekunden versuchen
+          for i in $(seq 1 215); do
             : > erg.txt
             GITHUB_OUTPUT=erg.txt python anlegen.py || true
             e=$(sed -n 's/^ergebnis=//p' erg.txt)
@@ -46,7 +46,7 @@ jobs:
             if [ "$e" = "erfolg" ] || [ "$e" = "vorhanden" ]; then
               echo "ergebnis=$e" >> "$GITHUB_OUTPUT"; exit 0
             fi
-            sleep 60
+            sleep 90
           done
           echo "ergebnis=kein-platz" >> "$GITHUB_OUTPUT"
       - if: steps.lauf.outputs.ergebnis == 'erfolg' || steps.lauf.outputs.ergebnis == 'vorhanden'
