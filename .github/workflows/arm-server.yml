@@ -2,8 +2,12 @@ name: Oracle ARM-Server anlegen
 
 on:
   schedule:
-    - cron: "*/20 * * * *"
+    - cron: "7 */5 * * *"
   workflow_dispatch:
+
+concurrency:
+  group: arm-server
+  cancel-in-progress: false
 
 permissions:
   actions: write
@@ -13,7 +17,7 @@ permissions:
 jobs:
   versuch:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,7 +27,6 @@ jobs:
           cache-dependency-path: requirements.txt
       - run: pip install -q -r requirements.txt
       - id: lauf
-        run: python anlegen.py
         env:
           OCI_USER: ${{ secrets.OCI_USER }}
           OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
@@ -33,6 +36,19 @@ jobs:
           OCI_AD: ${{ secrets.OCI_AD }}
           OCI_SUBNET: ${{ secrets.OCI_SUBNET }}
           SSH_PUBKEY: ${{ secrets.SSH_PUBKEY }}
+        run: |
+          # Bis zu ca. 5,5 Stunden lang jede Minute versuchen
+          for i in $(seq 1 320); do
+            : > erg.txt
+            GITHUB_OUTPUT=erg.txt python anlegen.py || true
+            e=$(sed -n 's/^ergebnis=//p' erg.txt)
+            echo "$(date -u +%H:%M) Versuch $i: $e"
+            if [ "$e" = "erfolg" ] || [ "$e" = "vorhanden" ]; then
+              echo "ergebnis=$e" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            sleep 60
+          done
+          echo "ergebnis=kein-platz" >> "$GITHUB_OUTPUT"
       - if: steps.lauf.outputs.ergebnis == 'erfolg' || steps.lauf.outputs.ergebnis == 'vorhanden'
         env:
           GH_TOKEN: ${{ github.token }}
