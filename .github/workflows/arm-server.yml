@@ -49,6 +49,10 @@ jobs:
             sleep 90
           done
           echo "ergebnis=kein-platz" >> "$GITHUB_OUTPUT"
+      - if: steps.lauf.outputs.ergebnis == 'kein-platz'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run arm-server.yml --repo "$GITHUB_REPOSITORY"
       - if: steps.lauf.outputs.ergebnis == 'erfolg' || steps.lauf.outputs.ergebnis == 'vorhanden'
         env:
           GH_TOKEN: ${{ github.token }}
